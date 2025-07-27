@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.jobportal.dto.LoginDTO;
 import com.jobportal.dto.UserDTO;
+import com.jobportal.exception.JobPortalException;
 import com.jobportal.service.UserService;
 
 import jakarta.validation.Valid;
@@ -24,9 +26,14 @@ public class UserController {
 	public UserService userService;
 	
 	@PostMapping("/register")
-	public ResponseEntity<UserDTO>registerUser(@RequestBody @Valid UserDTO userDTO){
+	public ResponseEntity<UserDTO>registerUser(@RequestBody @Valid UserDTO userDTO) throws JobPortalException{
 		userDTO = userService.registerUser(userDTO);
 		return new ResponseEntity<>(userDTO, HttpStatus.CREATED);
+	}
+	
+	@PostMapping("/login")
+	public ResponseEntity<UserDTO>loginUser(@RequestBody @Valid LoginDTO loginDTO) throws JobPortalException{
+		return new ResponseEntity<>(userService.loginUser(loginDTO), HttpStatus.OK);
 	}
 	
 }
