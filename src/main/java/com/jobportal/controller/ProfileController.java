@@ -1,5 +1,7 @@
 package com.jobportal.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,11 @@ public class ProfileController {
 	@GetMapping("/get/{id}")
 	public ResponseEntity<ProfileDTO>getProfile(@PathVariable Long id) throws Exception{
 		return new ResponseEntity<>(profileService.getProfile(id), HttpStatus.OK);
+	}
+	
+	@GetMapping("/getAll")
+	public ResponseEntity<List<ProfileDTO>>getAllProfiles() throws Exception{
+		return new ResponseEntity<>(profileService.getAllProfiles(), HttpStatus.OK);
 	}
 	
 	@PutMapping("/update")
