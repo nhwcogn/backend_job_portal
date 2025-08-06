@@ -2,6 +2,7 @@ package com.jobportal.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -41,13 +42,18 @@ public class UserController {
 		return new ResponseEntity<>(userService.loginUser(loginDTO), HttpStatus.OK);
 	}
 	
+	@PostMapping("/changePass")
+	public ResponseEntity<ReponseDTO>changePassword(@RequestBody @Valid LoginDTO loginDTO) throws JobPortalException{
+		return new ResponseEntity<>(userService.changePassword(loginDTO), HttpStatus.OK);
+	}
+	
 	@PostMapping("/sendOtp/{email}")
-	public ResponseEntity<ReponseDTO>sendOtp(@PathVariable String email) throws Exception{
+	public ResponseEntity<ReponseDTO>sendOtp(@PathVariable @Email(message="{user.email.invalid}") String email) throws Exception{
 		userService.sendOtp(email);
 		return new ResponseEntity<>(new ReponseDTO("OTP sent successfully."), HttpStatus.OK);
 	}
 	@GetMapping("/verifyOtp/{email}/{otp}")
-	public ResponseEntity<ReponseDTO>verifyOtp(@RequestBody @Email(message = "{user.email.invalid}") String email,@PathVariable @Pattern(regexp="^[0-9]{6}$", message = "{otp.invalid}") String otp) throws Exception{
+	public ResponseEntity<ReponseDTO>verifyOtp(@PathVariable @Email(message="{user.email.invalid}") String email,@PathVariable  @Pattern(regexp="^[0-9]{6}$", message = "{otp.invalid}") String otp) throws Exception{
 		userService.verifyOtp(email, otp);
 		return new ResponseEntity<>(new ReponseDTO("OTP has been verified."), HttpStatus.OK);
 	}

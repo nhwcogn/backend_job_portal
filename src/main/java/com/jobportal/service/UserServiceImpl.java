@@ -12,12 +12,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.jobportal.dto.LoginDTO;
+import com.jobportal.dto.NotificationDTO;
+import com.jobportal.dto.ReponseDTO;
 import com.jobportal.dto.UserDTO;
 import com.jobportal.entity.OTP;
 import com.jobportal.entity.User;
 import com.jobportal.exception.JobPortalException;
+import com.jobportal.repository.NotificationRepository;
 import com.jobportal.repository.OTPRespository;
 import com.jobportal.repository.UserRepository;
+import com.jobportal.utility.Data;
 import com.jobportal.utility.Utilities;
 
 import jakarta.mail.MessagingException;
@@ -41,12 +45,15 @@ public class UserServiceImpl implements UserService{
 	@Autowired
 	private JavaMailSender mailSender;
 	
+	@Autowired
+	private NotificationService notificationService;
+	
 	@Override
 	public UserDTO registerUser(UserDTO userDTO) throws JobPortalException {
 		Optional<User> optional = userRepository.findByEmail(userDTO.getEmail());
 		if(optional.isPresent())throw new JobPortalException("USER_FOUND");
 		userDTO.setProfileId(profileService.createProfile(userDTO.getEmail()));
-		userDTO.setId(Utilities.getNextSequence("users"));
+		userDTO.setId(Utilities.getNextSequenceId("users"));
 		userDTO.setPassword(passwordEncoder.encode(userDTO.getPassword()));
 		User user =  userDTO.toEntity();
 		user = userRepository.save(user);
@@ -62,7 +69,7 @@ public class UserServiceImpl implements UserService{
 
 	@Override
 	public Boolean sendOtp(String email) throws Exception {
-		userRepository.findByEmail(email).orElseThrow(()->new JobPortalException("USER_NOT_FOUND"));
+		User user = userRepository.findByEmail(email).orElseThrow(()->new JobPortalException("USER_NOT_FOUND"));
 		MimeMessage mm = mailSender.createMimeMessage();
 		MimeMessageHelper message = new MimeMessageHelper(mm, true);
 		message.setTo(email);
@@ -70,7 +77,7 @@ public class UserServiceImpl implements UserService{
 		String genOtp = Utilities.generateOTP();
 		OTP otp = new OTP(email, genOtp, LocalDateTime.now());
 		otpRespository.save(otp);
-		message.setText("Your Code is : "+genOtp, false);
+		message.setText(Data.getMessageBody(genOtp, user.getName()),true);
 		mailSender.send(mm);
 		return true;
 	}
@@ -91,4 +98,21 @@ public class UserServiceImpl implements UserService{
 			System.out.println("Removed"+expiredOTPs.size()+" expired OTPs.");
 		}
 	}
+
+	@Override
+	public ReponseDTO changePassword(LoginDTO loginDTO) throws JobPortalException {
+		User user = userRepository.findByEmail(loginDTO.getEmail()).orElseThrow(()->
+		new JobPortalException("USER_NOT_FOUND"));
+		user.setPassword(passwordEncoder.encode(loginDTO.getPassword()));
+		userRepository.save(user);
+		NotificationDTO noti = new NotificationDTO();
+		noti.setUserId(user.getId());
+		noti.setMessage("Password reset ruccessfill");
+		noti.setAction("Password reset");
+		notificationService.sendNotification(noti);
+		return new ReponseDTO("Password changed successfully.");
+	}
+	
+	
+	
 }

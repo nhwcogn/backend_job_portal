@@ -12,6 +12,7 @@ import com.jobportal.dto.Application;
 import com.jobportal.dto.ApplicationStatus;
 import com.jobportal.dto.JobDTO;
 import com.jobportal.dto.JobStatus;
+import com.jobportal.dto.NotificationDTO;
 import com.jobportal.entity.Applicant;
 import com.jobportal.entity.Job;
 import com.jobportal.exception.JobPortalException;
@@ -22,12 +23,22 @@ import com.jobportal.utility.Utilities;
 public class JobServiceImpl implements JobService {
 	@Autowired
 	private JobRepository jobRepository;
+	
+	@Autowired
+	private NotificationService notificationService;
 
 	@Override
 	public JobDTO postJob(JobDTO jobDTO) throws JobPortalException {
 		if(jobDTO.getId()==0) {
-			jobDTO.setId(Utilities.getNextSequence("jobs"));
+			jobDTO.setId(Utilities.getNextSequenceId("jobs"));
 			jobDTO.setPostTime(LocalDateTime.now());
+			NotificationDTO notiDto = new NotificationDTO();
+			notiDto.setAction("Job posted");
+			notiDto.setMessage("Job posted successfully for "+jobDTO.getJobTitle()+" at "+ jobDTO.getCompany());
+			
+			notiDto.setUserId(jobDTO.getPostedBy());
+			notiDto.setRoute("/posted-jobs/"+jobDTO.getId());
+			notificationService.sendNotification(notiDto);
 		}
 		else {
 			Job job = jobRepository.findById(jobDTO.getId()).orElseThrow(()->new JobPortalException("JOB_NOT_FOUND"));
@@ -70,8 +81,19 @@ public class JobServiceImpl implements JobService {
 		List<Applicant> applicants = job.getApplicants().stream().map((x)->{
 			if(application.getApplicantId()==x.getApplicantId()) {
 				x.setApplicationStatus(application.getApplicationStatus());
-				if(application.getApplicationStatus().equals(ApplicationStatus.INTERVIEWING))
+				if(application.getApplicationStatus().equals(ApplicationStatus.INTERVIEWING)) {
 					x.setInterviewTime(application.getInterviewTime());
+					NotificationDTO notiDto = new NotificationDTO();
+					notiDto.setAction("Interview scheduled");
+					notiDto.setMessage("Interview scheduled for job jd:"+application.getId());
+					notiDto.setUserId(application.getApplicantId());
+					notiDto.setRoute("/job-history");
+					try {
+						notificationService.sendNotification(notiDto);
+					} catch (JobPortalException e) {
+						e.printStackTrace();
+					}
+				}
 			}
 			return x;
 		}).toList();
